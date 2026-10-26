@@ -1,8 +1,10 @@
+from dataclasses import replace
 from datetime import UTC, date, datetime
 
+import pandas as pd
 import pytest
 
-from tests.conftest import ACTUAL_MW, run_value
+from tests.conftest import ACTUAL_MW, make_actuals, make_forecasts, run_value
 from winddesk.config import Settings
 from winddesk.data.repository import WindDataset
 from winddesk.domain.markets import get_market
@@ -128,3 +130,52 @@ def test_explorer_validation(
 ) -> None:
     with pytest.raises(error):
         analytics.explorer(start, end, horizon)
+
+
+def test_backtest_has_no_look_ahead(dataset: WindDataset, settings: Settings) -> None:
+    """Corrupting everything unknowable at a cutoff must not change that day's band."""
+    market = get_market("epex-hourly")
+    windows = bt.build_windows(date(2025, 12, 28), date(2026, 1, 6), market, 30)
+    baseline = bt.build_day_ahead_backtest(dataset.forecasts, dataset.actuals, windows, 3)
+    target = date(2026, 1, 4)
+    cutoff = pd.Timestamp(windows[target].cutoff)
+
+    actuals = dataset.actuals.copy()
+    future = actuals["start_time"] + pd.Timedelta(minutes=30) > cutoff
+    actuals.loc[future, "generation"] = actuals.loc[future, "generation"] * 3 + 777
+    forecasts = dataset.forecasts.copy()
+    late = forecasts["publish_time"] >= cutoff
+    forecasts.loc[late, "generation"] = 1.0
+
+    perturbed = bt.build_day_ahead_backtest(forecasts, actuals, windows, 3)
+    cols = [bt.FORECAST, bt.Q10, bt.Q50, bt.Q90, bt.P10, bt.P90, bt.ADJUSTED]
+    before = baseline.loc[baseline[bt.DELIVERY_DATE] == target, cols].reset_index(drop=True)
+    after = perturbed.loc[perturbed[bt.DELIVERY_DATE] == target, cols].reset_index(drop=True)
+    pd.testing.assert_frame_equal(before, after)
+
+
+def test_decision_on_clock_change_day_has_23_hours(settings: Settings) -> None:
+    spring = replace(
+        settings,
+        decision_start=date(2026, 3, 28),
+        decision_end=date(2026, 3, 28),
+        history_start=date(2026, 3, 24),
+    )
+    data = WindDataset(
+        actuals=make_actuals(date(2026, 3, 24), date(2026, 3, 30)),
+        forecasts=make_forecasts(date(2026, 3, 24), date(2026, 3, 29)),
+        source="synthetic",
+        retrieved_at=datetime(2026, 4, 1, tzinfo=UTC),
+    )
+    view = WindAnalytics(data, spring).decision(date(2026, 3, 29), "epex-hourly", 30)
+    assert len(view.hours) == 23
+    assert view.gate_closure == datetime(2026, 3, 28, 9, 20, tzinfo=UTC)  # still GMT on D-1
+
+
+def test_partial_outturn_hides_delivered_energy(dataset: WindDataset, settings: Settings) -> None:
+    actuals = dataset.actuals[dataset.actuals["start_time"] < pd.Timestamp("2026-01-04T12:00Z")]
+    partial = WindDataset(actuals, dataset.forecasts, "synthetic", dataset.retrieved_at)
+    view = WindAnalytics(partial, settings).decision(date(2026, 1, 4), "epex-hourly", 30)
+    assert view.summary is not None
+    assert view.summary.actual_energy_mwh is None
+    assert view.summary.stats is not None and view.summary.stats.n == 13

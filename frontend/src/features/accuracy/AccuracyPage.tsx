@@ -24,13 +24,17 @@ function Insights({ a }: { a: Accuracy }) {
   const current = a.marketComparison.find((m) => m.market.id === a.market.id)
   const high = highWindBias(a)
   const low = lowWindBias(a)
+  const overForecast = o.bias >= 0
   return (
     <div className="insights">
       <div className="insight">
-        <b>Over-forecast {pct(o.overForecastShare, 0)} of hours</b>
-        The bid-time forecast ran {signedPower(o.bias)} high on average —{' '}
-        {pct(o.bias / a.meanActualMw, 0)} of mean outturn. Planning on the raw number leaves a
-        systematic shortfall to buy back.
+        <b>
+          {overForecast ? 'Over' : 'Under'}-forecast{' '}
+          {pct(overForecast ? o.overForecastShare : 1 - o.overForecastShare, 0)} of hours
+        </b>
+        The bid-time forecast ran {power(Math.abs(o.bias))} {overForecast ? 'high' : 'low'} on
+        average — {pct(Math.abs(o.bias) / a.meanActualMw, 0)} of mean outturn. Planning on the raw
+        number leaves a systematic {overForecast ? 'shortfall to buy back' : 'surplus to sell'}.
       </div>
       {reduction !== null && a.overallAdjusted && (
         <div className="insight">
@@ -46,7 +50,7 @@ function Insights({ a }: { a: Accuracy }) {
           {pct(a.coverage.aboveHigh, 0)} above the high case.
         </div>
       )}
-      {high !== null && low !== null && (
+      {high !== null && low !== null && high > 0 && high > Math.abs(low) && (
         <div className="insight">
           <b>Errors grow in high wind</b>
           When the forecast is 16 GW or more the bias is {signedPower(high)}, versus{' '}
@@ -104,7 +108,8 @@ function MarketTable({ a }: { a: Accuracy }) {
 export function AccuracyPage() {
   const meta = useMeta()
   const { market, bidLeadMinutes, update } = useDeskParams(meta.data)
-  const accuracy = useAccuracy(market, bidLeadMinutes)
+  // Wait for meta so the first request uses the URL's market/lead, not the defaults.
+  const accuracy = useAccuracy(market, bidLeadMinutes, meta.isSuccess)
 
   if (meta.isPending) return <Loading />
   if (meta.isError) return <ErrorPanel error={meta.error} onRetry={() => meta.refetch()} />
@@ -166,7 +171,11 @@ export function AccuracyPage() {
             </Card>
             <Card
               title="Distribution of hourly errors"
-              subtitle="Day-ahead forecast minus outturn, 500 MW bins. Skewed right: shortfalls dominate."
+              subtitle={`Day-ahead forecast minus outturn, 500 MW bins. ${
+                a.overall.overForecastShare >= 0.5
+                  ? 'Mostly positive: shortfalls dominate.'
+                  : 'Mostly negative: surpluses dominate.'
+              }`}
             >
               <HistogramChart bins={a.histogram} />
             </Card>

@@ -58,12 +58,15 @@ def _band(day: pd.DataFrame, window_days: int) -> BandView | None:
 
 def _summary(day: pd.DataFrame) -> DecisionSummary:
     with_band = day.dropna(subset=[bt.ADJUSTED])
+    # Only compare delivered energy once every hour has been metered; a partial day
+    # would understate outturn against a full-day forecast.
+    complete = bool(day[bt.ACTUAL].notna().all())
     return DecisionSummary(
         forecast_energy_mwh=float(day[bt.FORECAST].sum()),
         adjusted_energy_mwh=energy_mwh(day[bt.ADJUSTED]),
         low_energy_mwh=energy_mwh(day[bt.P10]),
         high_energy_mwh=energy_mwh(day[bt.P90]),
-        actual_energy_mwh=energy_mwh(day[bt.ACTUAL]),
+        actual_energy_mwh=energy_mwh(day[bt.ACTUAL]) if complete else None,
         mean_forecast_mw=float(day[bt.FORECAST].mean()),
         peak_forecast_mw=float(day[bt.FORECAST].max()),
         min_forecast_mw=float(day[bt.FORECAST].min()),

@@ -64,4 +64,22 @@ describe('explorer', () => {
       expect(fetchMock.mock.calls.some(([u]) => String(u).includes('minHorizonH=6'))).toBe(true),
     )
   })
+
+  it('does not query the API for an invalid range', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => new Response(JSON.stringify(payload), { status: 200 }))
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter>
+          <ExplorerPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await screen.findByText('Hours compared')
+    fetchMock.mockClear()
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2025-12-01' } })
+    expect(await screen.findByText(/Choose a range within/)).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 })

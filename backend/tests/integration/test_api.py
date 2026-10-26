@@ -130,3 +130,29 @@ def test_rate_limit_returns_429(dataset: WindDataset, settings: Settings) -> Non
         other = c.get("/ping", headers={"x-forwarded-for": "5.6.7.8"}).status_code
     assert codes == [200, 200, 429]
     assert other == 200
+
+
+def test_rate_limit_ignores_spoofed_forwarded_for() -> None:
+    application = FastAPI()
+    application.add_middleware(RateLimitMiddleware, max_requests=2, window_s=60)
+
+    @application.get("/ping")
+    def ping() -> dict[str, bool]:
+        return {"ok": True}
+
+    with TestClient(application) as c:
+        codes = [
+            c.get("/ping", headers={"x-forwarded-for": f"10.0.0.{i}, 9.9.9.9"}).status_code
+            for i in range(3)
+        ]
+    assert codes == [200, 200, 429]  # keyed on the proxy-appended (rightmost) hop
+
+
+def test_rate_limiter_bounds_tracked_clients(monkeypatch: pytest.MonkeyPatch) -> None:
+    from winddesk.api import middleware
+
+    monkeypatch.setattr(middleware, "MAX_TRACKED_CLIENTS", 3)
+    limiter = RateLimitMiddleware(FastAPI(), max_requests=5, window_s=60)
+    for i in range(10):
+        assert limiter._allow(f"client-{i}")
+    assert len(limiter._hits) <= 3

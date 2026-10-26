@@ -23,19 +23,21 @@ export function useDecision(deliveryDate: string | undefined, market: string, bi
   })
 }
 
-export function useAccuracy(market: string, bidLeadMinutes: number) {
+export function useAccuracy(market: string, bidLeadMinutes: number, enabled = true) {
   return useQuery({
     queryKey: ['accuracy', market, bidLeadMinutes],
     queryFn: ({ signal }) => api.accuracy({ market, bidLeadMinutes }, signal),
+    enabled,
     staleTime: STALE_FOREVER,
     placeholderData: keepPreviousData,
   })
 }
 
-export function useExplorer(start: string, end: string, minHorizonH: number) {
+export function useExplorer(start: string, end: string, minHorizonH: number, enabled = true) {
   return useQuery({
     queryKey: ['explorer', start, end, minHorizonH],
     queryFn: ({ signal }) => api.explorer({ start, end, minHorizonH }, signal),
+    enabled,
     staleTime: STALE_FOREVER,
     placeholderData: keepPreviousData,
   })

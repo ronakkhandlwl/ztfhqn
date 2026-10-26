@@ -87,6 +87,24 @@ describe('App', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Service unavailable')
   })
 
+  it('words insights from the sign of the bias', async () => {
+    const underForecast = {
+      ...accuracy,
+      overall: { ...accuracy.overall!, bias: -800, overForecastShare: 0.3 },
+      byForecastLevel: accuracy.byForecastLevel.map((b) => ({ ...b, stats: { ...b.stats, bias: -500 } })),
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input)
+      const body = url.startsWith('/api/meta') ? meta : underForecast
+      return new Response(JSON.stringify(body), { status: 200 })
+    })
+    renderAt('/accuracy')
+    expect(await screen.findByText(/Under-forecast 70% of hours/)).toBeInTheDocument()
+    expect(screen.getByText(/surplus to sell/)).toBeInTheDocument()
+    expect(screen.queryByText(/Errors grow in high wind/)).not.toBeInTheDocument()
+    expect(screen.getByText(/surpluses dominate/)).toBeInTheDocument()
+  })
+
   it('renders the methodology page', async () => {
     mockApi()
     renderAt('/methodology')

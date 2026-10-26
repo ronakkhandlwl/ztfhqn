@@ -62,8 +62,8 @@ npm run dev
 ### Tests and checks
 
 ```bash
-cd backend  && uv run pytest && uv run ruff check . && uv run mypy winddesk   # 76 tests, ~98% coverage
-cd frontend && npm test && npm run lint && npm run typecheck && npm run build  # 35 tests, ~88% line coverage
+cd backend  && uv run pytest && uv run ruff check . && uv run mypy winddesk   # 81 tests, ~98% coverage
+cd frontend && npm test && npm run lint && npm run typecheck && npm run build  # 44 tests, ~88% line coverage
 ```
 
 ### Refresh the data snapshot from Elexon
@@ -126,7 +126,7 @@ Interactive docs: `/api/docs`.
 
 - **Decision timing.** GB day-ahead auctions trade 23:00→23:00 UK delivery days. Gate closures: EPEX hourly 09:20,
   Nord Pool N2EX 09:50, EPEX half-hourly 15:30 (UK time, D-1). Bids are finalised a configurable lead time before gate
-  (default 30 min); the forecast used is the latest WINDFOR run with `publishTime` ≤ that cutoff.
+  (default 30 min); the forecast used is the latest WINDFOR run published strictly before that cutoff.
 - **Scope.** Decisions 1–31 Jan 2026 → delivery days 2 Jan – 1 Feb. December 2025 is loaded only as error history so
   the first January decisions have a planning range.
 - **Error** = forecast − outturn, at each hourly forecast target vs. the FUELHH settlement period with the same

@@ -40,8 +40,8 @@ export function MethodologyPage() {
           before gate closure on the previous day: 09:20 (EPEX hourly), 09:50 (Nord Pool N2EX) or
           15:30 (EPEX half-hourly). The desk finalises bids a configurable lead time before gate
           (default 30 min). The forecast shown is the most recent WINDFOR run whose{' '}
-          <code>publishTime</code> is at or before that cutoff — never a later one. Only target
-          hours in the future at publish time are used.
+          <code>publishTime</code> is strictly before that cutoff — never a later one, and not one
+          released at the cutoff instant. Only target hours in the future at publish time are used.
         </p>
 
         <h2>Error metrics</h2>

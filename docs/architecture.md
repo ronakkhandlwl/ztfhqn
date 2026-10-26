@@ -54,7 +54,8 @@ For each delivery day *D* and auction:
 
 1. `decision_window()` → gate closure on D-1 (UK local, DST-aware) → cutoff = gate − bid lead → delivery window
    23:00 D-1 → 23:00 D, all in UTC.
-2. `forecast_at_cutoff()` → the latest WINDFOR run with `publishTime ≤ cutoff`, restricted to targets in the window
+2. `forecast_at_cutoff()` → the latest WINDFOR run with `publishTime < cutoff` (a run released at the cutoff
+   instant cannot be acted on), restricted to targets in the window
    with a non-negative horizon.
 3. Join outturn on `startTime`; error = forecast − outturn.
 4. `walk_forward_quantiles()` → for each day, P10/P50/P90 of errors **observable at the cutoff** (settlement period
@@ -82,7 +83,7 @@ consistent across views. It is computed once per (auction, bid lead) and cached 
 | Level | Where | What |
 | --- | --- | --- |
 | Unit (backend) | `backend/tests/unit/` | Gate-closure maths incl. BST and clock-change days, forecast selection edge cases (inclusive cutoff, no past targets, nothing published), metrics against hand-computed values, band look-ahead safety, Elexon client chunking/retries/bad payloads (httpx `MockTransport`), snapshot round-trip and live → snapshot fallback, config validation. |
-| Service | `test_services.py` | Synthetic dataset where every run's value encodes its publish hour, so tests assert *which* run was chosen and the exact error/band. |
+| Service | `test_services.py` | Synthetic dataset where every run's value encodes its publish hour, so tests assert *which* run was chosen and the exact error/band. A look-ahead test corrupts all outturn and forecast runs unknowable at a cutoff and asserts that day's band is unchanged; clock-change (23 h) and partial-outturn days are covered. |
 | Integration | `backend/tests/integration/test_api.py` | Full HTTP contract via `TestClient`: camelCase payloads, status codes (400/404/422/429/500), no leaked internals, cache headers. |
 | Frontend | `frontend/src/**/*.test.ts(x)` | Pure models (row merging, narratives, insights), formatting and scales, API client error handling, and rendered pages with mocked `fetch` (market switch, outturn toggle, error state, explorer slider). |
 

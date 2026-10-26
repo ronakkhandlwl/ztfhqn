@@ -2,6 +2,7 @@
 
 Two questions the desk asks:
 * "What was the latest forecast available when I had to bid?"  -> forecast_at_cutoff
+  (published strictly before the cutoff: a run released at the cutoff instant cannot be acted on)
 * "How good is a forecast made at least H hours ahead?"        -> forecasts_with_min_horizon
 Only forecasts with a non-negative horizon (target in the future at publish time)
 are ever considered.
@@ -17,7 +18,7 @@ from winddesk.domain.frames import GENERATION, HORIZON_H, PUBLISH_TIME, START_TI
 
 
 def latest_publish_time(forecasts: pd.DataFrame, cutoff: datetime) -> pd.Timestamp | None:
-    published = forecasts.loc[forecasts[PUBLISH_TIME] <= pd.Timestamp(cutoff), PUBLISH_TIME]
+    published = forecasts.loc[forecasts[PUBLISH_TIME] < pd.Timestamp(cutoff), PUBLISH_TIME]
     return None if published.empty else published.max()
 
 
@@ -27,7 +28,7 @@ def forecast_at_cutoff(
     start: datetime,
     end: datetime,
 ) -> pd.DataFrame:
-    """Rows of the latest forecast published at or before ``cutoff`` for start <= t < end."""
+    """Rows of the latest forecast published before ``cutoff`` for start <= t < end."""
     publish_time = latest_publish_time(forecasts, cutoff)
     if publish_time is None:
         return forecasts.iloc[0:0].copy()

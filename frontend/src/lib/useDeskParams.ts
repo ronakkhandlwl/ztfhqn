@@ -24,9 +24,10 @@ export function useDeskParams(meta: Meta | undefined) {
       ? marketParam
       : (meta?.defaultMarket ?? 'epex-hourly')
 
-  const leadParam = Number(search.get('lead'))
+  const leadRaw = search.get('lead')?.trim() ?? ''
+  const leadParam = Number(leadRaw)
   const bidLeadMinutes =
-    search.has('lead') && BID_LEAD_OPTIONS.includes(leadParam)
+    leadRaw !== '' && BID_LEAD_OPTIONS.includes(leadParam)
       ? leadParam
       : (meta?.defaultBidLeadMinutes ?? 30)
 

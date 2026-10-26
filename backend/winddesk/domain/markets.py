@@ -3,7 +3,7 @@
 GB day-ahead auctions trade a delivery day that runs 23:00 -> 23:00 UK local time
 (aligned to the CET day). Bids must be in before the auction's gate closure on D-1,
 so the forecast that matters is the latest one published before the desk finalises
-its bids: gate closure minus a bid-preparation lead time.
+its bids: gate closure minus a bid-preparation lead time (the cutoff).
 """
 
 from __future__ import annotations

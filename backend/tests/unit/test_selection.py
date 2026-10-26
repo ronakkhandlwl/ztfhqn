@@ -17,9 +17,11 @@ def forecasts() -> pd.DataFrame:
     return make_forecasts(date(2026, 1, 1), date(2026, 1, 3))
 
 
-def test_latest_publish_time_is_inclusive(forecasts: pd.DataFrame) -> None:
+def test_latest_publish_time_excludes_run_published_at_cutoff(forecasts: pd.DataFrame) -> None:
     cutoff = datetime(2026, 1, 2, 7, 30, tzinfo=UTC)
-    assert latest_publish_time(forecasts, cutoff) == pd.Timestamp(cutoff)
+    assert latest_publish_time(forecasts, cutoff) == pd.Timestamp("2026-01-02T04:30:00Z")
+    one_minute_later = datetime(2026, 1, 2, 7, 31, tzinfo=UTC)
+    assert latest_publish_time(forecasts, one_minute_later) == pd.Timestamp(cutoff)
 
 
 def test_latest_publish_time_none_before_first_run(forecasts: pd.DataFrame) -> None:

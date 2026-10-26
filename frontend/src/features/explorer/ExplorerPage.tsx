@@ -53,6 +53,7 @@ export function ExplorerPage() {
     ukMidnight(startDate),
     ukMidnight(addDays(endDate, 1)),
     deferredHorizon,
+    validRange,
   )
 
   const data = query.data
@@ -114,7 +115,7 @@ export function ExplorerPage() {
       </div>
 
       {!validRange && <div className="callout callout--warn">Choose a range within 1 Jan – 1 Feb 2026.</div>}
-      {query.isPending && <Loading />}
+      {validRange && query.isPending && <Loading />}
       {query.isError && <ErrorPanel error={query.error} onRetry={() => query.refetch()} />}
       {data && (
         <div className="grid" style={{ opacity: query.isPlaceholderData ? 0.6 : 1 }}>
