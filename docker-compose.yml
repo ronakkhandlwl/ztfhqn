@@ -1,0 +1,20 @@
+# Local stack: FastAPI backend + nginx-served React frontend.
+#   docker compose up --build   ->   http://localhost:8080
+services:
+  api:
+    build: ./backend
+    environment:
+      WINDDESK_DATA_SOURCE: ${WINDDESK_DATA_SOURCE:-snapshot}
+      WINDDESK_CORS_ORIGINS: http://localhost:8080
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

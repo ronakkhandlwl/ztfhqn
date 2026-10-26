@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Env & OS
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Tooling
+.vercel/
+.claude/
+
+# Local-only submission material (video script, notes)
+submission/
